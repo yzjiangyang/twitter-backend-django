@@ -1,3 +1,4 @@
+from newsfeeds.services import NewsFeedService
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
@@ -37,6 +38,7 @@ class TweetViewSet(viewsets.GenericViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         tweet = serializer.save()
+        NewsFeedService.fanout_to_followers(tweet)
         return Response(
             TweetSerializer(tweet).data,
             status=status.HTTP_201_CREATED
