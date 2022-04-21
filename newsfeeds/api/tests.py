@@ -19,7 +19,7 @@ class NewsFeedApiTests(TestCase):
 
     def test_list(self):
         # anonymous user cannot get newsfeed
-        response = self.anonymous_user.get(NEWSFEEDS_URL)
+        response = self.anonymous_client.get(NEWSFEEDS_URL)
         self.assertEqual(response.status_code, 403)
 
         # post method not allowed
