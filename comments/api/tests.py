@@ -1,7 +1,9 @@
+from comments.models import Comment
 from rest_framework.test import APIClient
 from testing.testcases import TestCase
 
 COMMENT_UTL = '/api/comments/'
+COMMENT_DETAIL_URL = '/api/comments/{}/'
 
 
 class CommentApiTest(TestCase):
@@ -45,3 +47,55 @@ class CommentApiTest(TestCase):
         self.assertEqual(response.data['user']['username'], 'testuser2')
         self.assertEqual(response.data['tweet_id'], self.tweet.id)
         self.assertEqual(response.data['content'], 'any content')
+
+    def test_update(self):
+        # create comment
+        comment = self.create_comment(self.user1, self.tweet)
+
+        # anonymous user cannot update
+        url = COMMENT_DETAIL_URL.format(comment.id)
+        response = self.anonymous_client.put(url)
+        self.assertEqual(response.status_code, 403)
+
+        # other user cannot update
+        response = self.user2_client.put(url)
+        self.assertEqual(response.status_code, 403)
+
+        # can only update content
+        before_updated_at = comment.updated_at
+        another_tweet = self.create_tweet(self.user1)
+        response = self.user1_client.put(url, {
+            'user_id': self.user2.id,
+            'tweet_id': another_tweet.id,
+            'content': 'new content'
+        })
+        # refresh comment
+        comment.refresh_from_db()
+        after_updated_at = comment.updated_at
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(comment.content, 'new content')
+        self.assertEqual(comment.user_id, self.user1.id)
+        self.assertEqual(comment.tweet_id, self.tweet.id)
+        self.assertNotEqual(before_updated_at, after_updated_at)
+
+    def test_destroy(self):
+        # create comment
+        comment = self.create_comment(self.user1, self.tweet)
+
+        # anonymous user cannot delete
+        url = COMMENT_DETAIL_URL.format(comment.id)
+        response = self.anonymous_client.delete(url)
+        self.assertEqual(response.status_code, 403)
+
+        # other user cannot update
+        response = self.user2_client.delete(url)
+        self.assertEqual(response.status_code, 403)
+
+        # delete successfully
+        before_delete_count = Comment.objects.count()
+        response = self.user1_client.delete(url)
+        after_delete_count = Comment.objects.count()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['success'], True)
+        self.assertEqual(response.data['deleted'], 1)
+        self.assertEqual(before_delete_count - 1, after_delete_count)
