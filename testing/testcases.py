@@ -1,3 +1,4 @@
+from comments.models import Comment
 from django.contrib.auth.models import User
 from django.test import TestCase as DjangoTestCase
 from friendships.models import Friendship
@@ -9,7 +10,7 @@ class TestCase(DjangoTestCase):
 
     # under same test class, only create one anonymous_user
     @property
-    def anonymous_user(self):
+    def anonymous_client(self):
         if hasattr(self, '_anonymous_user'):
             return self._anonymous_user
         self._anonymous_user = APIClient()
@@ -30,3 +31,8 @@ class TestCase(DjangoTestCase):
 
     def create_friendship(self, from_user, to_user):
         return Friendship.objects.create(from_user=from_user, to_user=to_user)
+
+    def create_comment(self, user, tweet, content=None):
+        if content == None:
+            content = "any content"
+        return Comment.objects.create(user=user, tweet=tweet, content=content)
