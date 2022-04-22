@@ -4,6 +4,7 @@ from tweets.models import Tweet
 
 TWEET_LIST_API = '/api/tweets/'
 TWEET_CREATE_API = '/api/tweets/'
+TWEET_RETRIEVE_API = '/api/tweets/{}/'
 
 
 class TweetApiTests(TestCase):
@@ -29,7 +30,7 @@ class TweetApiTests(TestCase):
         # missing user_id
         response = self.anonymous_client.get(TWEET_LIST_API)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.data['error'], 'missing user_id')
+        self.assertEqual(response.data['message'], 'missing user_id in request.')
 
         # user1 tweets
         response = self.anonymous_client.get(
@@ -88,3 +89,31 @@ class TweetApiTests(TestCase):
         self.assertEqual(response.data['user']['username'], 'testuser1')
         self.assertEqual(response.data['content'], 'hello world!')
         self.assertEqual(tweet_count_after, tweet_count_before + 1)
+
+    def test_retrieve(self):
+        # invalid tweet id
+        url = TWEET_RETRIEVE_API.format(0)
+        response = self.anonymous_client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+        # no comments
+        tweet = self.create_tweet(self.user1)
+        url = TWEET_RETRIEVE_API.format(tweet.id)
+        response = self.anonymous_client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['comments']), 0)
+
+        # add comments
+        self.create_comment(self.user1, tweet)
+        self.create_comment(self.user2, tweet)
+        response = self.anonymous_client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['comments']), 2)
+        self.assertEqual(
+            response.data['comments'][0]['user']['id'],
+            self.user1.id
+        )
+        self.assertEqual(
+            response.data['comments'][1]['user']['id'],
+            self.user2.id
+        )
