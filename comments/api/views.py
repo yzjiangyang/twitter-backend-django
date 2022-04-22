@@ -7,6 +7,7 @@ from comments.models import Comment
 from rest_framework import viewsets, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from utils.decorators import required_param
 from utils.permissions import IsObjectOwner
 
 
@@ -26,13 +27,8 @@ class CommentViewSet(viewsets.GenericViewSet):
             return [IsAuthenticated(), IsObjectOwner()]
         return [AllowAny()]
 
+    @required_param(method='GET', params=['tweet_id'])
     def list(self, request):
-        if 'tweet_id' not in request.query_params:
-            return Response({
-                'success': False,
-                'errors': 'Please check your input'
-            }, status=status.HTTP_400_BAD_REQUEST)
-
         queryset = self.get_queryset()
         comments = self.filter_queryset(queryset).\
             prefetch_related('user').\
