@@ -18,6 +18,43 @@ class CommentApiTest(TestCase):
         self.user2_client = APIClient()
         self.user2_client.force_authenticate(self.user2)
 
+    def test_list(self):
+        # missing parameter
+        response = self.anonymous_client.get(COMMENT_UTL)
+        self.assertEqual(response.status_code, 400)
+
+        # with tweet_id
+        response = self.anonymous_client.get(
+            COMMENT_UTL,
+            {'tweet_id': self.tweet.id}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['comments']), 0)
+
+        # create 2 comments
+        self.create_comment(self.user1, self.tweet)
+        self.create_comment(self.user2, self.tweet)
+
+        # comments order by time
+        another_tweet = self.create_tweet(self.user1)
+        self.create_comment(self.user2, another_tweet)
+
+        response = self.anonymous_client.get(
+            COMMENT_UTL,
+            {'tweet_id': self.tweet.id}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.data['comments']), 2)
+        self.assertEqual(
+            response.data['comments'][0]['user']['id'],
+            self.user1.id
+        )
+        self.assertEqual(
+            response.data['comments'][1]['user']['id'],
+            self.user2.id
+        )
+
+
     def test_create(self):
         # anonymous user cannot comment
         response = self.anonymous_client.post(COMMENT_UTL)
