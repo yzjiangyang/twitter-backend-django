@@ -36,7 +36,11 @@ class CommentViewSet(viewsets.GenericViewSet):
         # comments = Comment.objects.filter(
         #     tweet_id=request.query_params['tweet_id']
         # ).prefetch_related('user').order_by('created_at')
-        serializer = CommentSerializer(comments, many=True)
+        serializer = CommentSerializer(
+            comments,
+            context={'request': request},
+            many=True
+        )
         return Response({'comments': serializer.data})
 
     def create(self, request):
@@ -53,7 +57,7 @@ class CommentViewSet(viewsets.GenericViewSet):
 
         comment = serializer.save()
         return Response(
-            CommentSerializer(comment).data,
+            CommentSerializer(comment, context={'request': request}).data,
             status=status.HTTP_201_CREATED
         )
 
@@ -71,7 +75,9 @@ class CommentViewSet(viewsets.GenericViewSet):
             }, status=status.HTTP_400_BAD_REQUEST)
 
         comment = serializer.save()
-        return Response(CommentSerializer(comment).data)
+        return Response(
+            CommentSerializer(comment, context={'request': request}).data
+        )
 
     def destroy(self, request, *args, **kwargs):
         comment = self.get_object()
