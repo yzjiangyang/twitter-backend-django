@@ -4,6 +4,9 @@ from testing.testcases import TestCase
 
 COMMENT_UTL = '/api/comments/'
 COMMENT_DETAIL_URL = '/api/comments/{}/'
+TWEET_DETAIL_URL = '/api/tweets/{}/'
+TWEET_LIST_URL = '/api/tweets/'
+NEWSFEED_LIST_URL = '/api/newsfeeds/'
 
 
 class CommentApiTest(TestCase):
@@ -136,3 +139,30 @@ class CommentApiTest(TestCase):
         self.assertEqual(response.data['success'], True)
         self.assertEqual(response.data['deleted'], 1)
         self.assertEqual(before_delete_count - 1, after_delete_count)
+
+    def test_comments_count(self):
+        # create comment. test tweet list api
+        self.create_comment(self.user1, self.tweet)
+        response = self.anonymous_client.get(
+            TWEET_LIST_URL,
+            {'user_id': self.user1.id}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['tweets'][0]['comments_count'], 1)
+
+        # test tweet detail
+        response = self.anonymous_client.get(
+            TWEET_DETAIL_URL.format(self.tweet.id)
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['comments_count'], 1)
+
+        # test newsfeed api
+        self.create_comment(self.user2, self.tweet)
+        self.create_newsfeed(self.user1, self.tweet)
+        response = self.user1_client.get(NEWSFEED_LIST_URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data['newsfeeds'][0]['tweet']['comments_count'],
+            2
+        )
