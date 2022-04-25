@@ -15,7 +15,7 @@ class LikeSerializer(serializers.ModelSerializer):
         fields = ('user', 'created_at')
 
 
-class LikeSerializerForCreate(serializers.ModelSerializer):
+class BaseLikeSerializerForCreateAndCancel(serializers.ModelSerializer):
     content_type = serializers.ChoiceField(choices=['tweet', 'comment'])
     object_id = serializers.IntegerField()
 
@@ -35,11 +35,15 @@ class LikeSerializerForCreate(serializers.ModelSerializer):
     def validate(self, data):
         model_class = self._get_model_class(data)
         if model_class == None:
-            raise ValidationError({'content_type': 'Content type does not exist'})
+            raise ValidationError(
+                {'content_type': 'Content type does not exist'})
         if not model_class.objects.filter(id=data['object_id']).exists():
             raise ValidationError({'object_id': 'Object does not exist'})
 
         return data
+
+
+class LikeSerializerForCreate(BaseLikeSerializerForCreateAndCancel):
 
     def create(self, validated_data):
         model_class = self._get_model_class(validated_data)
@@ -50,3 +54,16 @@ class LikeSerializerForCreate(serializers.ModelSerializer):
         )
 
         return like
+
+
+class LikeSerializerForCancel(BaseLikeSerializerForCreateAndCancel):
+
+    def cancel(self):
+        model_class = self._get_model_class(self.validated_data)
+        deleted, _ = Like.objects.filter(
+            object_id=self.validated_data['object_id'],
+            content_type=ContentType.objects.get_for_model(model_class),
+            user=self.context['request'].user,
+        ).delete()
+
+        return deleted
