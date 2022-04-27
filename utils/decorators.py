@@ -10,7 +10,7 @@ def required_param(method='GET', params=None):
         # pass parameters from view_func to _wrapped_view through wraps
         @wraps(view_func)
         def _wrapped_view(instance, request, *args, **kwargs):
-            if method == 'GET':
+            if method.lower() == 'get':
                 data = request.query_params
             else:
                 data = request.data

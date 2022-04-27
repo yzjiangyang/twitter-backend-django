@@ -1,3 +1,4 @@
+from inbox.services import NotificationService
 from likes.api.serializers import (
     LikeSerializer,
     LikeSerializerForCancel,
@@ -26,7 +27,10 @@ class LikeViewSet(viewsets.GenericViewSet):
                 'errors': serializer.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
-        like = serializer.save()
+        like, created = serializer.get_or_create()
+        if created:
+            NotificationService.send_like_notification(like)
+
         return Response(
             LikeSerializer(like).data,
             status=status.HTTP_201_CREATED
