@@ -2,7 +2,9 @@ from accounts.api.serializers import (
     UserSerializer,
     LoginSerializer,
     SignupSerializer,
+    UserProfileSerializerForUpdate,
 )
+from accounts.models import UserProfile
 from django.contrib.auth import (
     logout as django_logout,
     login as django_login,
@@ -78,3 +80,26 @@ class AccountViewSet(viewsets.GenericViewSet):
             'success': True,
             'user': UserSerializer(user).data
         }, status=status.HTTP_201_CREATED)
+
+
+class UserProfileViewSet(viewsets.GenericViewSet):
+    serializer_class = UserProfileSerializerForUpdate
+
+    # only profile owner can update, add filter
+    def get_queryset(self):
+        return UserProfile.objects.filter(user=self.request.user)
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = UserProfileSerializerForUpdate(
+            instance=instance,
+            data=request.data
+        )
+        if not serializer.is_valid():
+            return Response({
+                'success': False,
+                'message': 'Please check your input.'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        profile = serializer.save()
+        return Response(UserProfileSerializerForUpdate(profile).data)

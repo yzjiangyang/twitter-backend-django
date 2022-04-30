@@ -1,4 +1,5 @@
 from accounts.models import UserProfile
+from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 from testing.testcases import TestCase
 
@@ -6,6 +7,7 @@ LOGIN_URL = '/api/accounts/login/'
 SIGNUP_URL = '/api/accounts/signup/'
 LOGOUT_URL = '/api/accounts/logout/'
 LOGIN_STATUS_URL = '/api/accounts/login_status/'
+USER_PROFILE_DETAIL_URL = '/api/profiles/{}/'
 
 
 class AccountApiTests(TestCase):
@@ -144,3 +146,50 @@ class AccountApiTests(TestCase):
         # test user profile
         user_id = response.data['user']['id']
         self.assertEqual(UserProfile.objects.filter(user=user_id).exists(), True)
+
+
+class UserProfileAPITests(TestCase):
+
+    def setUp(self):
+        self.user1 = self.create_user('testuser1')
+        self.user1_client = APIClient()
+        self.user1_client.force_authenticate(self.user1)
+
+        self.user2 = self.create_user('testuser2')
+        self.user2_client = APIClient()
+        self.user2_client.force_authenticate(self.user2)
+
+    def test_avatar_update(self):
+        # userprofile not exist
+        response = self.user1_client.put(USER_PROFILE_DETAIL_URL.format(1))
+        self.assertEqual(response.status_code, 404)
+
+        # create profile
+        user1_profile = self.user1.profile
+        user1_profile.nickname = 'old_nickname'
+        user1_profile.save()
+
+        # other user cannot update
+        url = USER_PROFILE_DETAIL_URL.format((user1_profile.id))
+        response = self.user2_client.put(url, {'nickname': 'new_nickname'})
+        self.assertEqual(response.status_code, 404)
+
+        # owner update nickname
+        response = self.user1_client.put(url, {'nickname': 'new_nickname'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['nickname'], 'new_nickname')
+        user1_profile.refresh_from_db()
+        self.assertEqual(user1_profile.nickname, 'new_nickname')
+
+        # owner update avatar
+        response = self.user1_client.put(url, {
+            'avatar': SimpleUploadedFile(
+                name='my-avatar.jpeg',
+                content=str.encode('a test image'),
+                content_type='image/jpeg'
+            )
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual('my-avatar' in response.data['avatar'], True)
+        user1_profile.refresh_from_db()
+        self.assertNotEqual(user1_profile.avatar, None)
