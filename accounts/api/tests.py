@@ -1,3 +1,4 @@
+from accounts.models import UserProfile
 from rest_framework.test import APIClient
 from testing.testcases import TestCase
 
@@ -140,3 +141,6 @@ class AccountApiTests(TestCase):
         })
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data['success'], True)
+        # test user profile
+        user_id = response.data['user']['id']
+        self.assertEqual(UserProfile.objects.filter(user=user_id).exists(), True)
