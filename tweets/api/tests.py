@@ -1,6 +1,7 @@
 from rest_framework.test import APIClient
 from testing.testcases import TestCase
-from tweets.models import Tweet
+from tweets.constants import TweetPhotoStatus
+from tweets.models import Tweet, TweetPhoto
 
 TWEET_LIST_API = '/api/tweets/'
 TWEET_CREATE_API = '/api/tweets/'
@@ -117,3 +118,11 @@ class TweetApiTests(TestCase):
             response.data['comments'][1]['user']['id'],
             self.user2.id
         )
+
+    def test_upload_picture(self):
+        user = self.create_user('testuser')
+        tweet = self.create_tweet(user)
+        photo = TweetPhoto.objects.create(user=user, tweet=tweet)
+        self.assertEqual(photo.user, user)
+        self.assertEqual(TweetPhoto.objects.count(), 1)
+        self.assertEqual(photo.status, TweetPhotoStatus.PENDING)
