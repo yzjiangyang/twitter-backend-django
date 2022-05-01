@@ -97,9 +97,9 @@ class UserProfileSerializerForUpdate(serializers.ModelSerializer):
         fields = ('nickname', 'avatar')
 
     def update(self, instance, validated_data):
-        if validated_data.get('avatar') != None:
+        if 'avatar' in validated_data:
             instance.avatar = validated_data.get('avatar')
-        if validated_data.get('nickname') != None:
+        if 'nickname' in validated_data:
             instance.nickname = validated_data.get('nickname')
         instance.save()
 
