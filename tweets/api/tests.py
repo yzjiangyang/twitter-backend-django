@@ -1,6 +1,6 @@
-from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 from testing.testcases import TestCase
+from tweets.constants import TweetPhotoStatus
 from tweets.models import Tweet, TweetPhoto
 
 TWEET_LIST_API = '/api/tweets/'
@@ -119,63 +119,10 @@ class TweetApiTests(TestCase):
             self.user2.id
         )
 
-    def test_create_tweet_with_pictures(self):
-        # upload empty files
-        response = self.user1_client.post(TWEET_CREATE_API, {
-            'content': 'test content',
-            'files': []
-        })
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(TweetPhoto.objects.count(), 0)
-
-        # upload one picture
-        response = self.user1_client.post(TWEET_CREATE_API, {
-            'content': 'test content',
-            'files': [
-                SimpleUploadedFile(
-                    name='test.jpeg',
-                    content=str.encode('a test image'),
-                    content_type='image/jpeg'
-                )
-            ]
-        })
-        self.assertEqual(response.status_code, 201)
+    def test_upload_picture(self):
+        user = self.create_user('testuser')
+        tweet = self.create_tweet(user)
+        photo = TweetPhoto.objects.create(user=user, tweet=tweet)
+        self.assertEqual(photo.user, user)
         self.assertEqual(TweetPhoto.objects.count(), 1)
-
-        # upload 2 pictures
-        response = self.user1_client.post(TWEET_CREATE_API, {
-            'content': 'test content',
-            'files': [
-                SimpleUploadedFile(
-                    name='test{}.jpeg'.format(i),
-                    content=str.encode('a test image{}'.format(i)),
-                    content_type='image/jpeg'
-                ) for i in range(2)
-            ]
-        })
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(TweetPhoto.objects.count(), 3)
-        self.assertEqual('test0' in response.data['photo_urls'][0], True)
-        self.assertEqual('test1' in response.data['photo_urls'][1], True)
-
-        # test tweet retrieve, should have photos too
-        url = TWEET_RETRIEVE_API.format(response.data['id'])
-        response = self.user1_client.get(url)
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data['photo_urls']), 2)
-        self.assertEqual('test0' in response.data['photo_urls'][0], True)
-        self.assertEqual('test1' in response.data['photo_urls'][1], True)
-
-        # upload more than the limit
-        response = self.user1_client.post(TWEET_CREATE_API, {
-            'content': 'test content',
-            'files': [
-                SimpleUploadedFile(
-                    name='test{}.jpeg'.format(i),
-                    content=str.encode('a test image{}'.format(i)),
-                    content_type='image/jpeg'
-                ) for i in range(10)
-            ]
-        })
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(TweetPhoto.objects.count(), 3)
+        self.assertEqual(photo.status, TweetPhotoStatus.PENDING)
