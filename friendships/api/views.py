@@ -9,25 +9,37 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from utils.paginations.pagination import FriendshipPagination
 
 
 class FriendshipViewSet(viewsets.GenericViewSet):
     serializer_class = FollowingSerializerForCreate
     queryset = User.objects.all()
+    pagination_class = FriendshipPagination
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
     def followings(self, request, pk):
         friendships = Friendship.objects.filter(from_user=pk).order_by('-created_at')
-        serializer = FollowingSerializer(friendships, many=True)
+        page = self.paginate_queryset(friendships)
+        serializer = FollowingSerializer(
+            page,
+            context={'request': request},
+            many=True
+        )
 
-        return Response({'followings': serializer.data})
+        return self.get_paginated_response(serializer.data)
 
     @action(methods=['GET'], detail=True, permission_classes=[AllowAny])
     def followers(self, request, pk):
         friendships = Friendship.objects.filter(to_user=pk).order_by('-created_at')
-        serializer = FollowerSerializer(friendships, many=True)
+        page = self.paginate_queryset(friendships)
+        serializer = FollowerSerializer(
+            page,
+            context={'request': request},
+            many=True
+        )
 
-        return Response({'followers': serializer.data})
+        return self.get_paginated_response(serializer.data)
 
     @action(methods=['POST'], detail=True, permission_classes=[IsAuthenticated])
     def follow(self, request, pk):
@@ -45,7 +57,7 @@ class FriendshipViewSet(viewsets.GenericViewSet):
 
         friendship = serializer.save()
         return Response(
-            FollowingSerializer(friendship).data,
+            FollowingSerializer(friendship, context={'request': request}).data,
             status=status.HTTP_201_CREATED
         )
 
