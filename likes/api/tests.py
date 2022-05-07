@@ -253,16 +253,16 @@ class LikeApiTests(TestCase):
             TWEET_LIST_URL, {'user_id': self.user1.id}
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['tweets'][0]['has_liked'], True)
-        self.assertEqual(response.data['tweets'][0]['likes_count'], 1)
+        self.assertEqual(response.data['results'][0]['has_liked'], True)
+        self.assertEqual(response.data['results'][0]['likes_count'], 1)
 
         # user1 has_liked is False
         response = self.user1_client.get(
             TWEET_LIST_URL, {'user_id': self.user1.id}
         )
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['tweets'][0]['has_liked'], False)
-        self.assertEqual(response.data['tweets'][0]['likes_count'], 1)
+        self.assertEqual(response.data['results'][0]['has_liked'], False)
+        self.assertEqual(response.data['results'][0]['likes_count'], 1)
 
         # test newsfeeds
         self.create_newsfeed(self.user1, tweet)
