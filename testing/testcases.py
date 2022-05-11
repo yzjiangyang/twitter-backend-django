@@ -12,7 +12,6 @@ from tweets.models import Tweet
 
 class TestCase(DjangoTestCase):
 
-    @property
     def clear_cache(self):
         caches['testing'].clear()
 

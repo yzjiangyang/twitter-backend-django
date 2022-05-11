@@ -15,7 +15,7 @@ class FollowingUserIdSetMixin:
         if hasattr(self, '_cached_following_user_id_set'):
             return self._cached_following_user_id_set
 
-        user_id_set = FriendshipService.get_following_user_id_set(
+        user_id_set = FriendshipService.get_following_user_id_set_through_memcached(
             self.context['request'].user.id
         )
         setattr(self, '_cached_following_user_id_set', user_id_set)
@@ -23,7 +23,7 @@ class FollowingUserIdSetMixin:
 
 
 class FollowingSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
-    user = UserSerializerForFriendship(source='to_user')
+    user = UserSerializerForFriendship(source='cached_to_user')
     has_followed = serializers.SerializerMethodField()
 
     class Meta:
@@ -35,7 +35,7 @@ class FollowingSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
 
 
 class FollowerSerializer(serializers.ModelSerializer, FollowingUserIdSetMixin):
-    user = UserSerializerForFriendship(source='from_user')
+    user = UserSerializerForFriendship(source='cached_from_user')
     has_followed = serializers.SerializerMethodField()
 
     class Meta:
