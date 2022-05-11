@@ -10,7 +10,7 @@ POST_TWEETS_URL = '/api/tweets/'
 class NewsFeedApiTests(TestCase):
 
     def setUp(self):
-        self.clear_cache
+        self.clear_cache()
         self.user1 = self.create_user('testuser1')
         self.user1_client = APIClient()
         self.user1_client.force_authenticate(self.user1)
@@ -110,3 +110,46 @@ class NewsFeedApiTests(TestCase):
         self.assertEqual(len(response.data['results']), 1)
         self.assertEqual(response.data['results'][0]['id'], new_newsfeed.id)
         self.assertEqual(response.data['has_next_page'], False)
+
+    def test_user_in_memcached(self):
+        profile = self.user1.profile
+        profile.nickname = 'user1_nickname'
+        profile.save()
+
+        self.create_newsfeed(self.user1, self.create_tweet(self.user2))
+        self.create_newsfeed(self.user1, self.create_tweet(self.user1))
+        response = self.user1_client.get(NEWSFEEDS_URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data['results'][0]['tweet']['user']['nickname'],
+            'user1_nickname'
+        )
+        self.assertEqual(
+            response.data['results'][0]['tweet']['user']['username'],
+            'testuser1'
+        )
+        self.assertEqual(
+            response.data['results'][1]['tweet']['user']['username'],
+            'testuser2'
+        )
+
+        # update username or nickname
+        profile.nickname = 'user1_new_nickname'
+        profile.save()
+        self.user2.username = 'user2_new_username'
+        self.user2.save()
+
+        response = self.user1_client.get(NEWSFEEDS_URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data['results'][0]['tweet']['user']['nickname'],
+            'user1_new_nickname'
+        )
+        self.assertEqual(
+            response.data['results'][0]['tweet']['user']['username'],
+            'testuser1'
+        )
+        self.assertEqual(
+            response.data['results'][1]['tweet']['user']['username'],
+            'user2_new_username'
+        )

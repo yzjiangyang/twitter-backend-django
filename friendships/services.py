@@ -23,7 +23,7 @@ class FriendshipService:
         # return followers
 
     @classmethod
-    def get_following_user_id_set(cls, from_user_id):
+    def get_following_user_id_set_through_memcached(cls, from_user_id):
         key = FOLLOWING_PATTERNS.format(user_id=from_user_id)
         user_id_set = cache.get(key)
         if user_id_set != None:

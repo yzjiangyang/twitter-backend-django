@@ -13,7 +13,7 @@ USER_PROFILE_DETAIL_URL = '/api/profiles/{}/'
 class AccountApiTests(TestCase):
 
     def setUp(self):
-        self.clear_cache
+        self.clear_cache()
         self.user = self.create_user('testuser')
         self.user_client = APIClient()
 
@@ -152,7 +152,7 @@ class AccountApiTests(TestCase):
 class UserProfileAPITests(TestCase):
 
     def setUp(self):
-        self.clear_cache
+        self.clear_cache()
         self.user1 = self.create_user('testuser1')
         self.user1_client = APIClient()
         self.user1_client.force_authenticate(self.user1)

@@ -1,3 +1,4 @@
+from accounts.services import UserService
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -27,3 +28,6 @@ class Like(models.Model):
             self.content_type,
             self.object_id,
         )
+
+    def cached_user(self):
+        return UserService.get_user_through_memcached(self.user_id)

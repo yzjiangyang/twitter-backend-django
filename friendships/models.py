@@ -1,3 +1,4 @@
+from accounts.services import UserService
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.signals import pre_delete, post_save
@@ -28,6 +29,13 @@ class Friendship(models.Model):
 
     def __str__(self):
         return '{} followed {}'.format(self.from_user, self.to_user)
+
+    def cached_from_user(self):
+        return UserService.get_user_through_memcached(self.from_user_id)
+
+    def cached_to_user(self):
+        return UserService.get_user_through_memcached(self.to_user_id)
+
 
 pre_delete.connect(invalidate_following_cache, sender=Friendship)
 post_save.connect(invalidate_following_cache, sender=Friendship)
