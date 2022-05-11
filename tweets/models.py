@@ -2,8 +2,10 @@ from accounts.services import UserService
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
+from django.db.models.signals import pre_delete, post_save
 from likes.models import Like
 from tweets.constants import TweetPhotoStatus, TWEET_PHOTO_STATUS_CHOICES
+from utils.memcached.listeners import invalidate_object_cache
 from utils.time_helpers import utc_now
 
 
@@ -58,3 +60,7 @@ class TweetPhoto(models.Model):
 
     def __str__(self):
         return '{} {}'.format(self.tweet, self.file)
+
+
+pre_delete.connect(invalidate_object_cache, sender=Tweet)
+post_save.connect(invalidate_object_cache, sender=Tweet)
