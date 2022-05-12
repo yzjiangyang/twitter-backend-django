@@ -2,6 +2,8 @@ from datetime import timedelta
 from testing.testcases import TestCase
 from tweets.constants import TweetPhotoStatus
 from tweets.models import Tweet, TweetPhoto
+from tweets.services import TweetService
+from twitter.cache import USER_TWEETS_PATTERN
 from utils.redis.redis_client import RedisClient
 from utils.redis.redis_serializers import DjangoModelSerializer
 from utils.time_helpers import utc_now
@@ -44,3 +46,30 @@ class TweetTests(TestCase):
         RedisClient.clear()
         data = conn.get(key)
         self.assertEqual(data, None)
+
+    def test_cached_tweet_list_in_redis(self):
+        user = self.create_user('testuser')
+        tweet_ids = []
+        for i in range(3):
+            tweet = self.create_tweet(user)
+            tweet_ids.append(tweet.id)
+        tweet_ids = tweet_ids[::-1]
+
+        conn = RedisClient.get_connection()
+        RedisClient.clear()
+
+        # cache miss
+        key = USER_TWEETS_PATTERN.format(user_id=user.id)
+        self.assertEqual(conn.exists(key), False)
+        tweets = TweetService.get_cached_tweets_from_redis(user.id)
+        self.assertEqual([tweet.id for tweet in tweets], tweet_ids)
+        # cache hit
+        self.assertEqual(conn.exists(key), True)
+        tweets = TweetService.get_cached_tweets_from_redis(user.id)
+        self.assertEqual([tweet.id for tweet in tweets], tweet_ids)
+
+        # cache updated after a new tweet is created
+        new_tweet = self.create_tweet(user, 'a new tweet')
+        tweets = TweetService.get_cached_tweets_from_redis(user.id)
+        tweet_ids.insert(0, new_tweet.id)
+        self.assertEqual([tweet.id for tweet in tweets], tweet_ids)

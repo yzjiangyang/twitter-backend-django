@@ -5,6 +5,7 @@ from django.db import models
 from django.db.models.signals import pre_delete, post_save
 from likes.models import Like
 from tweets.constants import TweetPhotoStatus, TWEET_PHOTO_STATUS_CHOICES
+from tweets.listeners import push_tweet_to_redis
 from utils.memcached.listeners import invalidate_object_cache
 from utils.time_helpers import utc_now
 
@@ -64,3 +65,5 @@ class TweetPhoto(models.Model):
 
 pre_delete.connect(invalidate_object_cache, sender=Tweet)
 post_save.connect(invalidate_object_cache, sender=Tweet)
+# new tweet is created, push to redis
+post_save.connect(push_tweet_to_redis, sender=Tweet)
