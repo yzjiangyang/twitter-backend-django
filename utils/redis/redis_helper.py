@@ -30,11 +30,11 @@ class RedisHelper:
         return list(queryset)
 
     @classmethod
-    def push_object(cls, key, tweet, queryset):
+    def push_object(cls, key, obj, queryset):
         conn = RedisClient.get_connection()
         if not conn.exists(key):
             cls._load_objects_to_cache(key, queryset)
             return
 
-        serialized_data = DjangoModelSerializer.serialize(tweet)
+        serialized_data = DjangoModelSerializer.serialize(obj)
         conn.lpush(key, serialized_data)
