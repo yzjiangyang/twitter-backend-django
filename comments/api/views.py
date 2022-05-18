@@ -83,6 +83,6 @@ class CommentViewSet(viewsets.GenericViewSet):
 
     def destroy(self, request, *args, **kwargs):
         comment = self.get_object()
-        deleted, _ =comment.delete()
+        deleted, _ = comment.delete()
 
         return Response({'success': True, 'deleted': deleted})

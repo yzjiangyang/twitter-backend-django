@@ -167,3 +167,44 @@ class CommentApiTest(TestCase):
             response.data['results'][0]['tweet']['comments_count'],
             2
         )
+
+    def test_comments_count_with_cache_in_redis(self):
+        tweet_url = TWEET_DETAIL_URL.format(self.tweet.id)
+        response = self.user1_client.get(tweet_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['comments_count'], 0)
+
+        # add a comment
+        data = {'tweet_id': self.tweet.id, 'content': 'any comment'}
+        self.user2_client.post(COMMENT_UTL, data)
+        response = self.user1_client.get(tweet_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['comments_count'], 1)
+        self.tweet.refresh_from_db()
+        self.assertEqual(self.tweet.comments_count, 1)
+
+        # add another comment
+        data = {'tweet_id': self.tweet.id, 'content': 'another comment'}
+        comment = self.user2_client.post(COMMENT_UTL, data).data
+        response = self.user1_client.get(tweet_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['comments_count'], 2)
+        self.tweet.refresh_from_db()
+        self.assertEqual(self.tweet.comments_count, 2)
+
+        # update comment shouldn't update comments_count
+        comment_url = '{}{}/'.format(COMMENT_UTL, comment['id'])
+        self.user2_client.put(comment_url, {'content': 'update comment'})
+        response = self.user1_client.get(tweet_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['comments_count'], 2)
+        self.tweet.refresh_from_db()
+        self.assertEqual(self.tweet.comments_count, 2)
+
+        # delete a comment count
+        self.user2_client.delete(comment_url)
+        response = self.user1_client.get(tweet_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['comments_count'], 1)
+        self.tweet.refresh_from_db()
+        self.assertEqual(self.tweet.comments_count, 1)
