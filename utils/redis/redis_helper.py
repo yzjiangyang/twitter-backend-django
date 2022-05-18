@@ -40,3 +40,45 @@ class RedisHelper:
         serialized_data = DjangoModelSerializer.serialize(obj)
         conn.lpush(key, serialized_data)
         conn.ltrim(key, 0, settings.REDIS_LIST_LENGTH_LIMIT - 1)
+
+    @classmethod
+    def get_key(cls, obj, attr):
+        return '{}.{}:{}'.format(obj.__class__.__name__, attr, obj.id)
+
+    @classmethod
+    def incr_count(cls, obj, attr):
+        key = cls.get_key(obj, attr)
+        conn = RedisClient.get_connection()
+        if conn.exists(key):
+            return conn.incr(key, 1) # increase count by 1 and return
+
+        # refresh form db, don't need to add 1 before set key value
+        obj.refresh_from_db()
+        conn.set(key, getattr(obj, attr))
+        conn.expire(key, settings.REDIS_KEY_EXPIRE_TIME)
+        return getattr(obj, attr)
+
+    @classmethod
+    def decr_count(cls, obj, attr):
+        key = cls.get_key(obj, attr)
+        conn = RedisClient.get_connection()
+        if conn.exists(key):
+            return conn.decr(key, 1)
+
+        # refresh form db, don't need to minus 1 before set key value
+        obj.refresh_from_db()
+        conn.set(key, getattr(obj, attr))
+        conn.expire(key, settings.REDIS_KEY_EXPIRE_TIME)
+        return getattr(obj, attr)
+
+    @classmethod
+    def get_count(cls, obj, attr):
+        key = cls.get_key(obj, attr)
+        conn = RedisClient.get_connection()
+        if conn.exists(key):
+            return int(conn.get(key)) # use int(), otherwise, return b'1'
+
+        # refresh, because not sure obj is retrieved from db or cache
+        obj.refresh_from_db()
+        conn.set(key, getattr(obj, attr))
+        return getattr(obj, attr)

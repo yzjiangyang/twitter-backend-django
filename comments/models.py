@@ -38,7 +38,7 @@ class Comment(models.Model):
 
     @property
     def cached_user(self):
-        return MemcachedHelper.get_object_through_memcached(User, self.user_id)
+        return UserService.get_user_through_memcached(self.user_id)
 
 
 pre_delete.connect(decr_comments_count, sender=Comment)
